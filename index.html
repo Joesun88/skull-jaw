@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>馬克柸-A</title>
+
+<script type="module"
+  src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js">
+</script>
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+model-viewer {
+  width: 100vw;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+/* ===== Floating Control Panel ===== */
+.panel {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 260px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  background: rgba(255,255,255,0.95);
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+
+  z-index: 30;
+  transition: all 0.25s ease;
+}
+
+.panel.collapsed {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+
+  width: 36px;
+  height: 36px;
+
+  border: none;
+  border-radius: 10px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.panel.collapsed .panel-content {
+  display: none;
+}
+
+.panel button.action {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.panel label {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.panel input[type="range"] {
+  width: 100%;
+}
+
+ .company-info{
+  position: fixed;
+  bottom: 20px;
+  left: 28px;
+
+  font-size: 15px;
+  font-weight: bold;
+  background:#999;
+  color:green;
+  text-align: center;
+}
+
+.company-logo{
+  position: fixed;
+  bottom: 50px;
+  left: 16px;
+  
+  width: 12vw;
+  max-width: 100px;
+  min-width: 80px;
+  height: auto;
+}
+
+/* ===== Custom AR Button ===== */
+#custom-ar-btn{
+  position:absolute;
+  bottom:16px;
+  right:16px;
+
+  padding:10px 16px;
+  border:none;
+  border-radius:12px;
+
+  background:rgba(30,30,30,0.78);
+  color:white;
+
+  font-size:14px;
+  font-weight:600;
+
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+
+  cursor:pointer;
+  transition:all .2s ease; 
+}
+
+#custom-ar-btn:hover{
+  background:rgba(60,60,60,0.9);
+  transform:scale(1.05);
+}
+</style>
+</head>
+<body>
+
+
+<div class="panel collapsed" id="controlPanel">
+  <button class="toggle-btn" onclick="togglePanel()">☰</button>
+
+  <div class="panel-content">
+
+    <strong>Wood Texture</strong>
+    <button class="action" onclick="setWood('wood-light.jpg')">Original</button>
+    <button class="action" onclick="setWood('wood-dark.jpg')">Dark Wood</button>
+    <button class="action" onclick="setWood('wood-white.jpg')">White Wood</button>
+
+    <strong>Tint</strong>
+    <button class="action" onclick="setTint(1,1,1)">Normal</button>
+    <button class="action" onclick="setTint(1,0.92,0.85)">Warm</button>
+    <button class="action" onclick="setTint(0.8,0.8,0.8)">Gray</button>
+
+    <label>Brightness <span id="brightnessValue">0.4</span></label>
+    <!-- 將預設亮度由 0.8 調高至 1.0，改善單向光暗部過深的問題 -->
+    <input type="range" id="brightnessSlider" min="0.3" max="2" step="0.05" value="0.4">
+
+    <label>Metallic <span id="metallicValue">0.05</span></label>
+    <input type="range" id="metallicSlider" min="0" max="1" step="0.01" value="0.05">
+
+    <label>Roughness <span id="roughnessValue">0.3</span></label>
+    <input type="range" id="roughnessSlider" min="0" max="1" step="0.01" value="0.3">
+
+  </div>
+</div>
+
+<model-viewer
+  id="mv"
+  src="Violin-v1.glb"
+  ios-src="Violin-v1.usdz"
+  poster="poster.webp"
+
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  ar-scale="fixed"
+  ar-placement="floor"
+
+  camera-controls
+  auto-rotate
+  autoplay
+  rotation-per-second="15deg"
+
+  environment-image="industrial_workshop_foundry_4k.hdr"
+  tone-mapping="neutral"
+  exposure="1.0"
+  shadow-intensity="0.8"
+  shadow-softness="0.8"
+  camera-orbit="auto auto auto"
+  field-of-view="auto">
+
+  <button slot="ar-button" id="custom-ar-btn">
+     AR 實境預覽
+  </button>
+  
+  <div class="company-info">
+    Joesun Studio<br>    
+    0937-230075<br>
+  </div>
+  
+</model-viewer>
+
+<img src="logo.png" class="company-logo"> 
+
+<script>
+const mv = document.querySelector("#mv");
+
+/* Panel Toggle */
+function togglePanel() {
+  document.querySelector("#controlPanel").classList.toggle("collapsed");
+}
+
+/* Texture Switch */
+async function setWood(textureUrl) {
+  const tex = await mv.createTexture(textureUrl);
+
+  mv.model.materials.forEach(mat => {
+    if (mat.pbrMetallicRoughness.baseColorTexture) {
+      mat.pbrMetallicRoughness.baseColorTexture.setTexture(tex);
+    }
+  });
+}
+
+/* Tint */
+function setTint(r,g,b) {
+  mv.model.materials.forEach(mat => {
+    mat.pbrMetallicRoughness.setBaseColorFactor([r,g,b,1]);
+  });
+}
+
+/* Utility */
+function updateAllMaterials(callback){
+  mv.model.materials.forEach(mat => callback(mat.pbrMetallicRoughness));
+}
+
+/* Sliders */
+brightnessSlider.addEventListener("input", e => {
+  mv.exposure = e.target.value;
+  brightnessValue.textContent = Number(e.target.value).toFixed(2);
+});
+
+metallicSlider.addEventListener("input", e => {
+  const val = Number(e.target.value);
+  updateAllMaterials(pbr => pbr.setMetallicFactor(val));
+  metallicValue.textContent = val.toFixed(2);
+});
+
+roughnessSlider.addEventListener("input", e => {
+  const val = Number(e.target.value);
+  updateAllMaterials(pbr => pbr.setRoughnessFactor(val));
+  roughnessValue.textContent = val.toFixed(2);
+});
+
+// 假設第2個物件的材質變數為 material2
+material2.transparent = true;
+material2.opacity = 0.6; // 數值可依需求調整 (例如 0.6 代表 60% 不透明)
+material2.needsUpdate = true;
+
+/* 模型載入後套用全方位四方均勻補光材質優化 */
+mv.addEventListener("load", () => {
+  mv.model.materials.forEach(mat => {
+    const pbr = mat.pbrMetallicRoughness;
+    pbr.setMetallicFactor(0.04);
+    pbr.setRoughnessFactor(0.6);
+  });
+});
+</script>
+
+</body>
+</html>
